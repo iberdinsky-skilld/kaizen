@@ -10,10 +10,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  *
  * @FieldFormatter(
  *   id = "kaizen_formatter",
- *   label = @Translation("Kaizen Formatter"),
- *   field_types = {
- *     "text_with_summary"
- *   },
+ *   deriver = "Drupal\kaizen\Plugin\Deriver\KaizenFormatterDeriver"
  * )
  */
 class KaizenFormatter extends FormatterBase {
@@ -24,16 +21,13 @@ class KaizenFormatter extends FormatterBase {
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
     foreach ($items as $delta => $item) {
-      // The text value has no text format assigned to it, so the user input
-      // should equal the output, including newlines.
       $elements[$delta] = [
         '#type' => 'inline_template',
-        '#template' => '{{ value|nl2br }}',
+        '#template' => 'test{{ value|nl2br }}',
         '#context' => ['value' => $item->value],
       ];
     }
 
     return $elements;
   }
-
 }

@@ -16,7 +16,6 @@ class KaizenLayoutDeriver extends KaizenDeriverBase {
    * {@inheritdoc}
    */
   public function getDerivativeDefinitions($base_plugin_definition) {
-
     $discovery = new FrontMatterDiscovery($this->themeHandler->getThemeDirectories(), 'layouts', ['plugins', 'layouts'], '/\.frontmatter\.html\.twig$/i');
     $discovery
       ->addTranslatableProperty('label')

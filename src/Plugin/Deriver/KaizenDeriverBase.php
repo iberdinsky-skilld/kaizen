@@ -7,7 +7,7 @@ use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Component\Plugin\Derivative\DeriverBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class KaizenDeriverBase extends DeriverBase implements ContainerDeriverInterface{
+class KaizenDeriverBase extends DeriverBase implements ContainerDeriverInterface {
 
   /**
    * The theme handler.

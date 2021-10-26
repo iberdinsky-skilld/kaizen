@@ -172,8 +172,10 @@ class FrontMatterDiscovery implements DiscoveryInterface {
           for ($i = 0; $i < count($this->arrayPosition); $i++) {
             $front_matter = $front_matter[$this->arrayPosition[$i]];
           }
-          $all[$provider] = $front_matter;
-          $file_cache->set($file, $front_matter);
+          if ($front_matter) {
+            $all[$provider] = $front_matter;
+            $file_cache->set($file, $front_matter);
+          }
         }
       }
     }
