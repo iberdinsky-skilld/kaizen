@@ -104,7 +104,6 @@ class FrontMatterDiscovery implements DiscoveryInterface {
    */
   public function getDefinitions() {
     $plugins = $this->findAll();
-
     // Flatten definitions array.
     $definitions = [];
     foreach ($plugins as $provider => $list) {
@@ -173,6 +172,10 @@ class FrontMatterDiscovery implements DiscoveryInterface {
             $front_matter = $front_matter[$this->arrayPosition[$i]];
           }
           if ($front_matter) {
+            // To know what file provides frontmatter.
+            foreach ($front_matter as $plugin => $list) {
+              $front_matter[$plugin]['file'] = $file;
+            }
             $all[$provider] = $front_matter;
             $file_cache->set($file, $front_matter);
           }
