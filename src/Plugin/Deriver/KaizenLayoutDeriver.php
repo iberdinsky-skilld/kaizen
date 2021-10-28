@@ -25,7 +25,6 @@ class KaizenLayoutDeriver extends KaizenDeriverBase {
 
     $layout_definitions = $discovery->getDefinitions();
     foreach ($layout_definitions as $layout_definition) {
-
       // Files are layout templates itself so we need to catch file path and
       // prepare LayoutDefinition variables.
       // TODO: Find good way to get
@@ -37,7 +36,7 @@ class KaizenLayoutDeriver extends KaizenDeriverBase {
       $theme_path = $theme->getPath();
       $file_info = pathinfo(substr($file_absolute_path, strpos($file_absolute_path, $theme_path) + strlen($theme_path) + 1));
 
-      // cut .html.twig file extensiions
+      // Cut .html.twig file extensiions.
       $layout_definition['template'] = substr($file_info['basename'], 0, -10);
       $layout_definition['path'] = $file_info['dirname'];
       // ENDTODO

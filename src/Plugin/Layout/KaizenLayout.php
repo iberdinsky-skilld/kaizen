@@ -16,13 +16,36 @@ use Drupal\Core\Plugin\PluginFormInterface;
  */
 class KaizenLayout extends LayoutDefault implements PluginFormInterface {
 
+  /**
+   * {@inheritdoc}
+   */
+  public function build(array $regions) {
+    $build = parent::build($regions);
+
+    $configuration = $this->configuration;
+    $build['#attributes'] = $configuration['attributes'];
+    foreach ($this->getPluginDefinition()->getRegionNames() as $region_name) {
+      if (array_key_exists($region_name, $configuration['region_attributes'])) {
+        $build[$region_name]['#attributes'] = $configuration['region_attributes'][$region_name]['attributes'];
+      }
+    }
+
+    return $build;
+  }
 
   /**
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
+    // dd($this->getPluginDefinition(), $this->getConfiguration(), $this->getPluginDefinition()->get('variables'));
+    $configuration = [];
+    if ($additional = $this->getPluginDefinition()->get('variables')) {
+
+    }
     return parent::defaultConfiguration() + [
-      'extra_classes' => 'Default',
+      'extra_classes' => '',
+      'attributes' => $additional['attributes'],
+      'region_attributes' => $additional['region_attributes'],
     ];
   }
 
@@ -36,7 +59,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
       '#title' => $this->t('Extra classes'),
       '#default_value' => $configuration['extra_classes'],
     ];
-    return $form;
+    return parent::buildConfigurationForm($form, $form_state);
   }
 
   /**

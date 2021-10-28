@@ -167,14 +167,25 @@ class FrontMatterDiscovery implements DiscoveryInterface {
         // If a file is empty or its contents are commented out, return an empty
         // array instead of NULL for type consistency.
         if ($front_matter) {
+
+          // catch variables
+          $front_matter_variables = false;
+          if ($front_matter['variables']) {
+            $front_matter_variables = $front_matter['variables'];
+          }
+
           // If plugin defined deeper in FrontMatter tree.
           for ($i = 0; $i < count($this->arrayPosition); $i++) {
             $front_matter = $front_matter[$this->arrayPosition[$i]];
           }
           if ($front_matter) {
+
             // To know what file provides frontmatter.
             foreach ($front_matter as $plugin => $list) {
               $front_matter[$plugin]['file'] = $file;
+              if($front_matter_variables) {
+                $front_matter[$plugin]['variables'] = $front_matter_variables;
+              }
             }
             $all[$provider] = $front_matter;
             $file_cache->set($file, $front_matter);
