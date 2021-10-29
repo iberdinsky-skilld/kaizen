@@ -1,0 +1,18 @@
+<?php
+
+use Drupal\kaizen\Plugin\Discovery\FrontMatterDiscovery;
+
+function kaizen_library_info_alter(array &$libraries, $extension) {
+  $themes = \Drupal::service('theme_handler')->listInfo();
+  if (in_array($extension, array_keys($themes))) {
+    foreach ($themes as $theme) {
+      $path = $theme->getPath();
+      $discovery = new FrontMatterDiscovery([$path], 'libraries', ['plugins', 'libraries'], '/\.frontmatter\.html\.twig$/i');
+      $definitions = $discovery->getDefinitions();
+
+      if (count($definitions) > 0) {
+        $libraries = array_merge($libraries, $definitions);
+      }
+    }
+  }
+}
