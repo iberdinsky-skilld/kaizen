@@ -24,6 +24,7 @@ class KaizenLayoutDeriver extends KaizenDeriverBase {
 
 
     $layout_definitions = $discovery->getDefinitions();
+
     foreach ($layout_definitions as $layout_definition) {
       // Files are layout templates itself so we need to catch file path and
       // prepare LayoutDefinition variables.

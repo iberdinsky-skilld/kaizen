@@ -21,7 +21,6 @@ class KaizenFormatterDeriver extends KaizenDeriverBase {
     $discovery
       ->addTranslatableProperty('label');
 
-
     $formatter_definitions = $discovery->getDefinitions();
     foreach ($formatter_definitions as $formatter_definition) {
       // Theme providers ignored in DefaultPluginManager.

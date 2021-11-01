@@ -106,29 +106,31 @@ class FrontMatterDiscovery implements DiscoveryInterface {
     $plugins = $this->findAll();
     // Flatten definitions array.
     $definitions = [];
-    foreach ($plugins as $provider => $list) {
-      foreach ($list as $id => $definition) {
-        // Add TranslatableMarkup.
-        foreach ($this->translatableProperties as $property => $context_key) {
-          if (isset($definition[$property])) {
-            $options = [];
-            // Move the t() context from the definition to the translation
-            // wrapper.
-            if ($context_key && isset($definition[$context_key])) {
-              $options['context'] = $definition[$context_key];
-              unset($definition[$context_key]);
+    foreach ($plugins as $provider => $files_list) {
+      foreach ($files_list as $file => $list) {
+        foreach ($list as $id => $definition) {
+          // Add TranslatableMarkup.
+          foreach ($this->translatableProperties as $property => $context_key) {
+            if (isset($definition[$property])) {
+              $options = [];
+              // Move the t() context from the definition to the translation
+              // wrapper.
+              if ($context_key && isset($definition[$context_key])) {
+                $options['context'] = $definition[$context_key];
+                unset($definition[$context_key]);
+              }
+              $definition[$property] = new TranslatableMarkup($definition[$property], [], $options);
             }
-            $definition[$property] = new TranslatableMarkup($definition[$property], [], $options);
           }
+          // Add ID and provider.
+          $definitions[$id] = $definition + [
+            'provider' => $provider,
+            'id' => $id,
+            'file' => $file,
+          ];
         }
-        // Add ID and provider.
-        $definitions[$id] = $definition + [
-          'provider' => $provider,
-          'id' => $id,
-        ];
       }
     }
-
     return $definitions;
   }
 
@@ -145,14 +147,14 @@ class FrontMatterDiscovery implements DiscoveryInterface {
     $all = [];
 
     $files = $this->findFiles();
-    $provider_by_files = array_flip($files);
+    // $provider_by_files = array_flip($files);
 
-    $file_cache = FileCacheFactory::get('frontmatter_discovery:' . $this->fileCacheKeySuffix);
-    // Try to load from the file cache first.
-    foreach ($file_cache->getMultiple($files) as $file => $data) {
-      $all[$provider_by_files[$file]] = $data;
-      unset($provider_by_files[$file]);
-    }
+    // $file_cache = FileCacheFactory::get('frontmatter_discovery:' . $this->fileCacheKeySuffix);
+    // // Try to load from the file cache first.
+    // foreach ($file_cache->getMultiple($files) as $file => $data) {
+    //   $all[$provider_by_files[$file]] = $data;
+    //   unset($provider_by_files[$file]);
+    // }
 
     // If there are files left that were not returned from the cache, load and
     // parse them now. This list was flipped above and is keyed by filename.
@@ -176,19 +178,22 @@ class FrontMatterDiscovery implements DiscoveryInterface {
 
           // If plugin defined deeper in FrontMatter tree.
           for ($i = 0; $i < count($this->arrayPosition); $i++) {
-            $front_matter = $front_matter[$this->arrayPosition[$i]];
+            if(isset($front_matter[$this->arrayPosition[$i]])) {
+              $front_matter = $front_matter[$this->arrayPosition[$i]];
+            } else {
+              $front_matter = false;
+            }
           }
           if ($front_matter) {
 
             // To know what file provides frontmatter.
             foreach ($front_matter as $plugin => $list) {
-              $front_matter[$plugin]['file'] = $file;
               if($front_matter_variables) {
                 $front_matter[$plugin]['variables'] = $front_matter_variables;
               }
             }
-            $all[$provider] = $front_matter;
-            $file_cache->set($file, $front_matter);
+            $all[$provider][$file] = $front_matter;
+            // $file_cache->set($file, $front_matter);
           }
         }
       }

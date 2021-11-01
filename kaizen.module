@@ -6,13 +6,59 @@ function kaizen_library_info_alter(array &$libraries, $extension) {
   $themes = \Drupal::service('theme_handler')->listInfo();
   if (in_array($extension, array_keys($themes))) {
     foreach ($themes as $theme) {
-      $path = $theme->getPath();
-      $discovery = new FrontMatterDiscovery([$path], 'libraries', ['plugins', 'libraries'], '/\.frontmatter\.html\.twig$/i');
+      $theme_path = $theme->getPath();
+      $discovery = new FrontMatterDiscovery([$theme_path], 'libraries', ['plugins', 'libraries'], '/\.frontmatter\.html\.twig$/i');
       $definitions = $discovery->getDefinitions();
-
       if (count($definitions) > 0) {
+        foreach ($definitions as $library_name => $library) {
+
+          // Same logic as in KaizenLayoutDeriver::getDerivativeDefinitions.
+          // Replace COMPONENT/file.css with relative path to theme
+          $file_absolute_path = $library['file'];
+          $file_info = pathinfo(substr($file_absolute_path, strpos($file_absolute_path, $theme_path) + strlen($theme_path) + 1));
+          if (isset($library['css'])) {
+            foreach ($library['css'] as $category_name => $category) {
+              foreach ($category as $file_path => $file) {
+                unset($definitions[$library_name]['css'][$category_name][$file_path]);
+                $file_path = str_replace('COMPONENT', $file_info['dirname'], $file_path);
+                $definitions[$library_name]['css'][$category_name][$file_path] = $file;
+              }
+            }
+          }
+          if (isset($library['js'])) {
+            foreach ($library['js'] as $file_path => $file) {
+              unset($definitions[$library_name]['js'][$file_path]);
+              $file_path = str_replace('COMPONENT', $file_info['dirname'], $file_path);
+              $definitions[$library_name]['js'][$file_path] = $file;
+            }
+          }
+        }
+
         $libraries = array_merge($libraries, $definitions);
       }
     }
   }
+}
+
+function kaizen_theme($existing, $type, $theme, $path) {
+  $themes = \Drupal::service('theme_handler')->listInfo();
+
+  $templates = [];
+
+  foreach ($themes as $theme) {
+    $theme_path = $theme->getPath();
+    $discovery = new FrontMatterDiscovery([$theme_path], 'formatters', ['plugins', 'formatters'], '/\.frontmatter\.html\.twig$/i');
+    $definitions = $discovery->getDefinitions();
+    foreach ($definitions as $template_name => $template) {
+      // Cut .html.twig file extensiions.
+      $templates[$template_name] = [
+        'template' => substr(pathinfo($template['file'])['basename'], 0, -10),
+        'variables' => [
+          'attributes' => NULL,
+          'content' => NULL,
+        ],
+      ];
+    }
+  }
+  return $templates;
 }

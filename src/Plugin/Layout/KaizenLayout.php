@@ -34,7 +34,9 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
 
     foreach ($additional['variables']['region_attributes'] as $region_name => $region) {
       $build[$region_name]['#attributes'] = new Attribute($region['attributes'] ? $region['attributes'] : []);
-      $build[$region_name]['#attributes']->addClass($configuration[$region_name]['modifiers']);
+      if (isset($configuration[$region_name]['modifiers'])) {
+        $build[$region_name]['#attributes']->addClass($configuration[$region_name]['modifiers']);
+      }
     }
 
     foreach ($additional['variables']['template_settings'] as $setting_name => $setting) {
@@ -54,9 +56,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
       'extra_classes' => '',
     ];
     foreach ($additional['variables']['region_attributes'] as $region_name => $region) {
-      if ($region['modifiers']) {
-        $configuration[$region_name]['modifiers'] = [];
-      }
+      $configuration[$region_name]['modifiers'] = [];
     }
 
     foreach ($additional['variables']['template_settings'] as $setting_name => $setting) {
@@ -104,7 +104,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
           '#type' => 'select',
           '#title' => $setting['label'],
           '#options' => array_combine($setting['modifiers'], $setting['modifiers']),
-          '#description' => $this->t('Select custom setting'),
+          '#description' => $setting['description'],
           '#default_value' => $configuration['template_settings'][$setting_name],
           '#multiple' => FALSE,
         ];
