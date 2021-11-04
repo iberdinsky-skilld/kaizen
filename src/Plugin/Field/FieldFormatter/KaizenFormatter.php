@@ -81,6 +81,10 @@ class KaizenFormatter extends FormatterBase {
           'template_settings' => $this->getSetting('template_settings'),
         ],
       ];
+
+      if($this->pluginDefinition['library']) {
+        $elements[$delta]['#attached']['library'][] = $this->pluginDefinition['library'];
+      }
     }
     return $elements;
   }

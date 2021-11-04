@@ -23,6 +23,9 @@ class KaizenFormatterDeriver extends KaizenDeriverBase {
 
     $formatter_definitions = $discovery->getDefinitions();
     foreach ($formatter_definitions as $formatter_definition) {
+      if ($formatter_definition['library'] && $formatter_definition['provider']) {
+        $formatter_definition['library'] = str_replace('COMPONENT', $formatter_definition['provider'], $formatter_definition['library']);
+      }
       // Theme providers ignored in DefaultPluginManager.
       $formatter_definition['provider'] = 'kaizen';
       $formatter_definition['class'] = KaizenFormatter::class;

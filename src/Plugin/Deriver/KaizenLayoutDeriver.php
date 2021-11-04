@@ -40,6 +40,9 @@ class KaizenLayoutDeriver extends KaizenDeriverBase {
       // Cut .html.twig file extensiions.
       $layout_definition['template'] = substr($file_info['basename'], 0, -10);
       $layout_definition['path'] = $file_info['dirname'];
+
+      $layout_definition['library'] = str_replace('COMPONENT', $layout_definition['provider'], $layout_definition['library']);
+
       // ENDTODO
 
       $layout_definition['class'] = KaizenLayout::class;
