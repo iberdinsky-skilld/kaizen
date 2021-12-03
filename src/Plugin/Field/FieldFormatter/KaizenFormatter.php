@@ -25,7 +25,7 @@ class KaizenFormatter extends FormatterBase {
       'attributes' => [],
       'modifiers' => [],
       'template_settings' => [],
-      'extra_classes'=> ''
+      'extra_classes' => '',
     ] + parent::defaultSettings();
   }
 
@@ -69,23 +69,26 @@ class KaizenFormatter extends FormatterBase {
    */
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
-    $attributes =  new Attribute($this->pluginDefinition['variables']['attributes'] ? $this->pluginDefinition['variables']['attributes'] : []);
+    $attributes = new Attribute($this->pluginDefinition['variables']['attributes'] ? $this->pluginDefinition['variables']['attributes'] : []);
     $attributes->addClass($this->getSetting('modifiers'));
     $attributes->addClass($this->getSetting('extra_classes'));
+    list(, $formatter_id) = explode(":", $this->getPluginId());
     foreach ($items as $delta => $item) {
       $elements[$delta] = [
-        '#theme' => $this->pluginDefinition['id'],
+        '#theme' => 'kaizen_' . $formatter_id,
         '#attributes' => $attributes,
         '#content' => [
           'content' => ['#markup' => $item->value],
           'template_settings' => $this->getSetting('template_settings'),
         ],
-      ];
 
-      if($this->pluginDefinition['library']) {
-        $elements[$delta]['#attached']['library'][] = $this->pluginDefinition['library'];
-      }
+        // @todo -  Need to check at first if lib exists.
+        '#attached' => [
+          'library' => ['elements/' . $formatter_id],
+        ],
+      ];
     }
     return $elements;
   }
+
 }

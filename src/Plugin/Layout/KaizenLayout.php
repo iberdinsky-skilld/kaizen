@@ -25,7 +25,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
 
     $configuration = $this->configuration;
 
-    $additional =  $this->pluginDefinition->get('additional');
+    $additional = $this->pluginDefinition->get('additional');
     $build['#attributes'] = new Attribute($additional['variables']['attributes'] ? $additional['variables']['attributes'] : []);
     foreach ($configuration['modifiers'] as $modifier) {
       $build['#attributes']->addClass($modifier);
@@ -39,10 +39,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
       }
     }
 
-    foreach ($additional['variables']['template_settings'] as $setting_name => $setting) {
-      $build['template_settings'][$setting_name] = $configuration['template_settings'][$setting_name];
-    }
-
+    !isset($configuration['template_settings']) || $build['#template_settings'] = $configuration['template_settings'];
     return $build;
   }
 
@@ -50,7 +47,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    $additional =  $this->pluginDefinition->get('additional');
+    $additional = $this->pluginDefinition->get('additional');
     $configuration = [
       'modifiers' => [],
       'extra_classes' => '',
@@ -71,7 +68,7 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $configuration = $this->getConfiguration();
-    $additional =  $this->pluginDefinition->get('additional');
+    $additional = $this->pluginDefinition->get('additional');
     if ($additional['variables']) {
       if ($additional['variables']['modifiers']) {
         $form['modifiers'] = [
@@ -86,17 +83,27 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
 
       $region_labels = $this->pluginDefinition->getRegionLabels();
 
+      $region_attributes = [];
       foreach ($additional['variables']['region_attributes'] as $region_name => $region) {
-        if ($region['modifiers']) {
-          $form[$region_name]['modifiers'] = [
+        if (isset($region['modifiers'])) {
+          $region_attributes[$region_name]['modifiers'] = [
             '#type' => 'select',
-            '#title' => $region_labels[$region_name] . ' ' . $this->t('element modifiers'),
+            '#title' => $this->t('Modifiers for :region', [
+              ':region' => $region_labels[$region_name],
+            ]),
             '#options' => array_combine($region['modifiers'], $region['modifiers']),
-            '#description' => $this->t('Optionally add modifier CSS classes for') . ' ' . $region_labels[$region_name],
-            '#default_value' => $configuration[$region_name]['modifiers'],
+            '#description' => $this->t('Optionally add modifier CSS classes'),
+            '#default_value' => $configuration['region_attributes'][$region_name]['modifiers'],
             '#multiple' => TRUE,
           ];
         }
+      }
+      if (!empty($region_attributes)) {
+        $form['region_attributes'] = [
+          '#type' => 'details',
+          '#title' => $this->t('Region attributes'),
+          '#open' => TRUE,
+        ] + $region_attributes;
       }
 
       foreach ($additional['variables']['template_settings'] as $setting_name => $setting) {
@@ -123,29 +130,12 @@ class KaizenLayout extends LayoutDefault implements PluginFormInterface {
   /**
    * {@inheritdoc}
    */
-  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
-    // any additional form validation that is required
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['modifiers'] = $form_state->getValue('modifiers');
     $this->configuration['extra_classes'] = $form_state->getValue('extra_classes');
-    $additional =  $this->pluginDefinition->get('additional');
-    foreach ($additional['variables']['region_attributes'] as $region_name => $region) {
-      if ($form[$region_name]['modifiers']) {
-        $this->configuration[$region_name]['modifiers'] = $form_state->getValue([$region_name, 'modifiers']);
-      }
-    }
-
-    foreach ($additional['variables']['template_settings'] as $setting_name => $setting) {
-      if ($form['template_settings'][$setting_name]) {
-        $this->configuration['template_settings'][$setting_name] = $form_state->getValue(['template_settings', $setting_name]);
-      }
-    }
-
+    $this->configuration['region_attributes'] = $form_state->getValue('region_attributes');
+    $this->configuration['template_settings'] = $form_state->getValue('template_settings');
     parent::submitConfigurationForm($form, $form_state);
   }
+
 }
