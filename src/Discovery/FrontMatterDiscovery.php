@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\kaizen\Plugin\Discovery;
+namespace Drupal\kaizen\Discovery;
 
 use Drupal\Component\Discovery\DiscoveryException;
 use Drupal\Component\FileCache\FileCacheFactory;
@@ -9,7 +9,6 @@ use Drupal\Component\Plugin\Discovery\DiscoveryTrait;
 use Drupal\Component\FrontMatter\FrontMatter;
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Core\Serialization\Yaml;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Provides discovery for files containing FrontMatter.
@@ -53,15 +52,6 @@ class FrontMatterDiscovery implements DiscoveryInterface {
   protected $fileFilter;
 
   /**
-   * Contains an array of translatable properties passed along to t().
-   *
-   * @var array
-   *
-   * @see \Drupal\kaizen\Plugin\Discovery\FrontMatterDiscovery::addTranslatableProperty()
-   */
-  protected $translatableProperties = [];
-
-  /**
    * Constructs a FrontMatterDiscovery object.
    *
    * @param array $directories
@@ -83,23 +73,6 @@ class FrontMatterDiscovery implements DiscoveryInterface {
   }
 
   /**
-   * Set one of the FrontMatter values as being translatable.
-   *
-   * @param string $value_key
-   *   The key corresponding to the value in the FrontMatter that contains a
-   *   translatable string.
-   * @param string $context_key
-   *   (Optional) the translation context for the value specified by the
-   *   $value_key.
-   *
-   * @return $this
-   */
-  public function addTranslatableProperty($value_key, $context_key = '') {
-    $this->translatableProperties[$value_key] = $context_key;
-    return $this;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function getDefinitions() {
@@ -107,28 +80,12 @@ class FrontMatterDiscovery implements DiscoveryInterface {
     // Flatten definitions array.
     $definitions = [];
     foreach ($plugins as $provider => $files_list) {
-      foreach ($files_list as $file => $list) {
-        foreach ($list as $id => $definition) {
-          // Add TranslatableMarkup.
-          foreach ($this->translatableProperties as $property => $context_key) {
-            if (isset($definition[$property])) {
-              $options = [];
-              // Move the t() context from the definition to the translation
-              // wrapper.
-              if ($context_key && isset($definition[$context_key])) {
-                $options['context'] = $definition[$context_key];
-                unset($definition[$context_key]);
-              }
-              $definition[$property] = new TranslatableMarkup($definition[$property], [], $options);
-            }
-          }
-          // Add ID and provider.
-          $definitions[$id] = $definition + [
-            'provider' => $provider,
-            'id' => $id,
-            'file' => $file,
-          ];
-        }
+      foreach ($files_list as $file => $definition) {
+        // Add ID and provider.
+        $definitions[$definition['id']] = $definition + [
+          'provider' => $provider,
+          'file' => $file,
+        ];
       }
     }
     return $definitions;
@@ -147,18 +104,11 @@ class FrontMatterDiscovery implements DiscoveryInterface {
     $all = [];
 
     $files = $this->findFiles();
-    // $provider_by_files = array_flip($files);
 
-    // $file_cache = FileCacheFactory::get('frontmatter_discovery:' . $this->fileCacheKeySuffix);
-    // // Try to load from the file cache first.
-    // foreach ($file_cache->getMultiple($files) as $file => $data) {
-    //   $all[$provider_by_files[$file]] = $data;
-    //   unset($provider_by_files[$file]);
-    // }
-
+    $file_cache = FileCacheFactory::get('frontmatter_discovery:' . $this->fileCacheKeySuffix);
     // If there are files left that were not returned from the cache, load and
     // parse them now. This list was flipped above and is keyed by filename.
-    if ($files) {
+    if (!empty($files)) {
       foreach ($files as $file => $provider) {
         try {
           $front_matter = FrontMatter::create(file_get_contents($file), Yaml::class)->getData();
@@ -168,33 +118,26 @@ class FrontMatterDiscovery implements DiscoveryInterface {
         }
         // If a file is empty or its contents are commented out, return an empty
         // array instead of NULL for type consistency.
+        list($filename) = explode(".", basename($file));
+        $front_matter['id'] = $provider . "_" . $filename;
+        $front_matter['name'] = $filename;
+        $front_matter['provider_path'] = $this->directories[$provider];
+        $front_matter['component_path'] = pathinfo($file, PATHINFO_DIRNAME);
         if ($front_matter) {
-
-          // catch variables
-          $front_matter_variables = false;
+          // Catch variables.
+          $front_matter_variables = FALSE;
           if ($front_matter['variables']) {
             $front_matter_variables = $front_matter['variables'];
           }
 
-          // If plugin defined deeper in FrontMatter tree.
-          for ($i = 0; $i < count($this->arrayPosition); $i++) {
-            if(isset($front_matter[$this->arrayPosition[$i]])) {
-              $front_matter = $front_matter[$this->arrayPosition[$i]];
-            } else {
-              $front_matter = false;
+          // To know what file provides frontmatter.
+          if ($front_matter_variables) {
+            foreach ($front_matter['plugins'] as &$list) {
+              $list['variables'] = $front_matter_variables;
             }
           }
-          if ($front_matter) {
-
-            // To know what file provides frontmatter.
-            foreach ($front_matter as $plugin => $list) {
-              if($front_matter_variables) {
-                $front_matter[$plugin]['variables'] = $front_matter_variables;
-              }
-            }
-            $all[$provider][$file] = $front_matter;
-            // $file_cache->set($file, $front_matter);
-          }
+          $all[$provider][$file] = $front_matter;
+          $file_cache->set($file, $front_matter);
         }
       }
     }

@@ -1,0 +1,4 @@
+services:
+  kaizen.manager:
+    class: Drupal\kaizen\KaizenManager
+    arguments: ['%app.root%', '@module_handler', '@theme_handler']

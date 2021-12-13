@@ -2,37 +2,40 @@
 
 namespace Drupal\kaizen\Plugin\Deriver;
 
-use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Component\Plugin\Derivative\DeriverBase;
+use Drupal\kaizen\KaizenManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * Class KaizenDeriverBase.
+ */
 class KaizenDeriverBase extends DeriverBase implements ContainerDeriverInterface {
 
   /**
-   * The theme handler.
+   * Kaizen manager.
    *
-   * @var \Drupal\Core\Extension\ThemeHandlerInterface
+   * @var \Drupal\kaizen\KaizenManager
    */
-  protected $themeHandler;
+  protected $kaizenManager;
 
   /**
    * Constructs a new KaizenDeriverBase object.
    *
-   * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
-   *   The theme handler to invoke the alter hook with.
+   * @param \Drupal\kaizen\KaizenManager $kaizenManager
+   *   Kaizen manager.
    */
-  public function __construct(ThemeHandlerInterface $theme_handler) {
-    $this->themeHandler = $theme_handler;
+  public function __construct(KaizenManager $kaizenManager) {
+    $this->kaizenManager = $kaizenManager;
   }
-
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, $base_plugin_id) {
     return new static(
-      $container->get('theme_handler'),
+      $container->get('kaizen.manager'),
     );
   }
+
 }
