@@ -3,5 +3,5 @@ type: module
 description: Kaizen theme support
 core_version_requirement: ^9
 dependencies:
-  - layout_builder
-  - layout_discovery
+  - drupal:layout_builder
+  - drupal:layout_discovery
