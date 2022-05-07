@@ -20,7 +20,7 @@ class KaizenLayoutDeriver extends KaizenDeriverBase {
       $layout_definition = [
         'id' => $definition['id'],
         'label' => $definition['title'],
-        'template' => substr(pathinfo($definition['file'], PATHINFO_BASENAME), 0, -10),
+        'template' => $definition['plugins']['layout']['template'],
         'templatePath' => pathinfo($definition['file'], PATHINFO_DIRNAME),
         'library' => $definition['provider'] . '/' . $definition['id'],
         'icon_map' => $definition['plugins']['layout']['icon_map'],

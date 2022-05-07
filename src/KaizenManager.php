@@ -4,7 +4,7 @@ namespace Drupal\kaizen;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\kaizen\Discovery\FrontMatterDiscovery;
+use Drupal\kaizen\Discovery\KaizenYamlDiscovery;
 
 /**
  * Class KaizenManager.
@@ -56,7 +56,7 @@ class KaizenManager {
    */
   public function getDefinitions() {
     $directories = $this->getExtensionsDirectories();
-    $discovery = new FrontMatterDiscovery($directories, 'kaizen_discovery');
+    $discovery = new KaizenYamlDiscovery($directories, 'kaizen_discovery');
     return $discovery->getDefinitions();
   }
 

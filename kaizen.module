@@ -57,7 +57,7 @@ function kaizen_theme($existing, $type, $theme, $path) {
   foreach ($definitions as $definition) {
     // Cut .html.twig file extensiions.
     $templates['kaizen_' . $definition['id']] = [
-      'template' => substr(pathinfo($definition['file'], PATHINFO_BASENAME), 0, -10),
+      'template' => $definition['plugins']['formatter']['template'],
       'theme path' => $definition['provider_path'],
       'path' => $definition['component_path'],
       'variables' => [
