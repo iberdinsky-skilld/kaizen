@@ -1,35 +1,20 @@
 <?php
 
-namespace Drupal\kaizen\Plugin\Discovery;
+namespace Drupal\kaizen\Discovery;
 
 use Drupal\Component\Discovery\DiscoveryException;
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
 use Drupal\Component\Plugin\Discovery\DiscoveryTrait;
-use Drupal\Component\FrontMatter\FrontMatter;
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Core\Serialization\Yaml;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Provides discovery for files containing FrontMatter.
  */
-class FrontMatterDiscovery implements DiscoveryInterface {
+class KaizenYamlDiscovery implements DiscoveryInterface {
 
   use DiscoveryTrait;
-
-  /**
-   * Plugin may appear not on top level of FrontMatter.
-   *
-   * @var array
-   *
-   * @code
-   * plugins:
-   *   layouts:
-   *     layout_onecolumn:
-   * @endcode
-   */
-  protected $arrayPosition = [];
 
   /**
    * An array of directories to scan, keyed by the provider.
@@ -53,6 +38,13 @@ class FrontMatterDiscovery implements DiscoveryInterface {
   protected $fileFilter;
 
   /**
+   * The key contained in the discovered data that identifies it.
+   *
+   * @var string
+   */
+  protected $idKey;
+
+  /**
    * Contains an array of translatable properties passed along to t().
    *
    * @var array
@@ -69,17 +61,18 @@ class FrontMatterDiscovery implements DiscoveryInterface {
    * @param string $file_cache_key_suffix
    *   The file cache key suffix. This should be unique for each class that
    *   extends this abstract class.
-   * @param array $array_position
-   *   Depth of plugin in FrontMatter array.
    * @param string $file_filter
    *   (optional) Regular expression pattern to filter file names. Defaults to
-   *   a pattern that finds files with extension .frontmatter.html.twig.
+   *   a pattern that finds files with extension .kaizen_component.yml.
+   * @param string $key
+   *   (optional) The key contained in the discovered data that identifies it.
+   *   Defaults to 'id'.*.
    */
-  public function __construct(array $directories, string $file_cache_key_suffix, array $array_position = [], string $file_filter = '/\.frontmatter\.html\.twig$/i') {
-    $this->arrayPosition = $array_position;
+  public function __construct(array $directories, string $file_cache_key_suffix, string $file_filter = '/\.kaizen_component\.yml$/i', $key = 'id') {
     $this->directories = $directories;
     $this->fileFilter = $file_filter;
     $this->fileCacheKeySuffix = $file_cache_key_suffix;
+    $this->idKey = $key;
   }
 
   /**
@@ -107,28 +100,12 @@ class FrontMatterDiscovery implements DiscoveryInterface {
     // Flatten definitions array.
     $definitions = [];
     foreach ($plugins as $provider => $files_list) {
-      foreach ($files_list as $file => $list) {
-        foreach ($list as $id => $definition) {
-          // Add TranslatableMarkup.
-          foreach ($this->translatableProperties as $property => $context_key) {
-            if (isset($definition[$property])) {
-              $options = [];
-              // Move the t() context from the definition to the translation
-              // wrapper.
-              if ($context_key && isset($definition[$context_key])) {
-                $options['context'] = $definition[$context_key];
-                unset($definition[$context_key]);
-              }
-              $definition[$property] = new TranslatableMarkup($definition[$property], [], $options);
-            }
-          }
-          // Add ID and provider.
-          $definitions[$id] = $definition + [
-            'provider' => $provider,
-            'id' => $id,
-            'file' => $file,
-          ];
-        }
+      foreach ($files_list as $file => $definition) {
+        // Add ID and provider.
+        $definitions[$definition['id']] = $definition + [
+          'provider' => $provider,
+          'file' => $file,
+        ];
       }
     }
     return $definitions;
@@ -147,58 +124,68 @@ class FrontMatterDiscovery implements DiscoveryInterface {
     $all = [];
 
     $files = $this->findFiles();
-    // $provider_by_files = array_flip($files);
 
-    // $file_cache = FileCacheFactory::get('frontmatter_discovery:' . $this->fileCacheKeySuffix);
-    // // Try to load from the file cache first.
-    // foreach ($file_cache->getMultiple($files) as $file => $data) {
-    //   $all[$provider_by_files[$file]] = $data;
-    //   unset($provider_by_files[$file]);
-    // }
+    $file_cache = FileCacheFactory::get('yaml_discovery:' . $this->fileCacheKeySuffix);
+
+    // Try to load from the file cache first.
+    foreach ($file_cache->getMultiple(array_keys($files)) as $file => $data) {
+      $all[$files[$file]][$this->getIdentifier($file, $data)] = $data;
+      unset($files[$file]);
+    }
 
     // If there are files left that were not returned from the cache, load and
     // parse them now. This list was flipped above and is keyed by filename.
-    if ($files) {
+    if (!empty($files)) {
       foreach ($files as $file => $provider) {
         try {
-          $front_matter = FrontMatter::create(file_get_contents($file), Yaml::class)->getData();
+          $data = Yaml::decode(file_get_contents($file)) ?: [];
         }
         catch (InvalidDataTypeException $e) {
-          throw new DiscoveryException(sprintf('Malformed FrontMatter in frontmatter "%s": %s.', $file, $e->getMessage()));
+          throw new DiscoveryException("The $file contains invalid YAML", 0, $e);
         }
         // If a file is empty or its contents are commented out, return an empty
         // array instead of NULL for type consistency.
-        if ($front_matter) {
+        list($filename) = explode(".", basename($file));
+        $data['id'] = $provider . "_" . $filename;
+        $data['name'] = $filename;
+        $data['provider_path'] = $this->directories[$provider];
+        $data['component_path'] = pathinfo($file, PATHINFO_DIRNAME);
 
-          // catch variables
-          $front_matter_variables = false;
-          if ($front_matter['variables']) {
-            $front_matter_variables = $front_matter['variables'];
-          }
+        // Catch variables.
+        $data_variables = FALSE;
+        if ($data['variables']) {
+          $data_variables = $data['variables'];
+        }
 
-          // If plugin defined deeper in FrontMatter tree.
-          for ($i = 0; $i < count($this->arrayPosition); $i++) {
-            if(isset($front_matter[$this->arrayPosition[$i]])) {
-              $front_matter = $front_matter[$this->arrayPosition[$i]];
-            } else {
-              $front_matter = false;
-            }
-          }
-          if ($front_matter) {
-
-            // To know what file provides frontmatter.
-            foreach ($front_matter as $plugin => $list) {
-              if($front_matter_variables) {
-                $front_matter[$plugin]['variables'] = $front_matter_variables;
-              }
-            }
-            $all[$provider][$file] = $front_matter;
-            // $file_cache->set($file, $front_matter);
+        // To know what file provides frontmatter.
+        if ($data_variables) {
+          foreach ($data['plugins'] as &$list) {
+            $list['variables'] = $data_variables;
           }
         }
+        $all[$provider][$file] = $data;
+        $file_cache->set($file, $data);
       }
     }
     return $all;
+  }
+
+  /**
+   * Gets the identifier from the data.
+   *
+   * @param string $file
+   *   The filename.
+   * @param array $data
+   *   The data from the YAML file.
+   *
+   * @return string
+   *   The identifier from the data.
+   */
+  protected function getIdentifier($file, array $data) {
+    if (!isset($data[$this->idKey])) {
+      throw new DiscoveryException("The $file contains no data in the identifier key '{$this->idKey}'");
+    }
+    return $data[$this->idKey];
   }
 
   /**
