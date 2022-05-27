@@ -67,9 +67,20 @@ class KaizenManager {
    *   Array of enabled extensions.
    */
   protected function getExtensionsDirectories() {
-    $list = array_merge($this->moduleHandler->getModuleDirectories(), $this->themeHandler->getThemeDirectories());
-    foreach ($list as &$dir) {
-      $dir = str_replace($this->root . '/', "", $dir);
+    $extensions_lists = [
+      'module' => $this->moduleHandler->getModuleDirectories(),
+      'theme' => $this->themeHandler->getThemeDirectories(),
+    ];
+
+    $list = [];
+
+    foreach ($extensions_lists as $type => $extensions_list) {
+      foreach ($extensions_list as $name => $dir) {
+        $list[$name] = [
+          'directory' => str_replace($this->root . '/', "", $dir),
+          'extension_type' => $type,
+        ];
+      }
     }
     return $list;
   }
