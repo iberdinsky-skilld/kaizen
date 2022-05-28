@@ -148,7 +148,8 @@ class KaizenYamlDiscovery implements DiscoveryInterface {
         list($filename) = explode(".", basename($file));
         $data['id'] = $provider . "_" . $filename;
         $data['name'] = $filename;
-        $data['provider_path'] = $this->directories[$provider];
+        $data['provider_path'] = $this->directories[$provider]['directory'];
+        $data['provider_type'] = $this->directories[$provider]['extension_type'];
         $data['component_path'] = pathinfo($file, PATHINFO_DIRNAME);
 
         // Catch variables.
@@ -196,14 +197,12 @@ class KaizenYamlDiscovery implements DiscoveryInterface {
    */
   protected function findFiles() {
     $file_list = [];
-    foreach ($this->directories as $provider => $directories) {
-      $directories = (array) $directories;
-      foreach ($directories as $directory) {
-        if (is_dir($directory)) {
-          /** @var \SplFileInfo $fileInfo */
-          foreach ($this->getDirectoryIterator($directory, $this->fileFilter) as $fileInfo) {
-            $file_list[$fileInfo->getPathname()] = $provider;
-          }
+    foreach ($this->directories as $provider => $directory_info) {
+      $directory = $directory_info['directory'];
+      if (is_dir($directory)) {
+        /** @var \SplFileInfo $fileInfo */
+        foreach ($this->getDirectoryIterator($directory) as $fileInfo) {
+          $file_list[$fileInfo->getPathname()] = $provider;
         }
       }
     }

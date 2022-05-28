@@ -67,6 +67,21 @@ class KaizenFormatter extends FormatterBase {
   /**
    * {@inheritdoc}
    */
+  public function calculateDependencies() {
+    $list = parent::calculateDependencies();
+    $def = $this->getPluginDefinition();
+
+    // Set sources dependencies.
+    if (isset($def['provider_source']) && isset($def['provider_source_type'])) {
+      $list[$def['provider_source_type']][] = $def['provider_source'];
+    }
+
+    return $list;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
     $attributes = new Attribute($this->pluginDefinition['variables']['attributes'] ? $this->pluginDefinition['variables']['attributes'] : []);

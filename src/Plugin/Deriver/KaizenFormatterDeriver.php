@@ -23,7 +23,6 @@ class KaizenFormatterDeriver extends KaizenDeriverBase {
    */
   public function getDerivativeDefinitions($base_plugin_definition) {
     $definitions = $this->kaizenManager->getDefinitions();
-
     foreach ($definitions as $definition) {
       if (isset($definition['plugins']['formatter'])) {
         $formatter = $definition['plugins']['formatter'];
@@ -33,6 +32,7 @@ class KaizenFormatterDeriver extends KaizenDeriverBase {
           'field_types' => $formatter['field_types'],
           'variables' => $definition['variables'],
           'provider_source' => $definition['provider'],
+          'provider_source_type' => $definition['provider_type'],
         ] + $base_plugin_definition;
         $this->derivatives[$instance_id] = $formatter_definition;
       }
